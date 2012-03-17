@@ -1,13 +1,12 @@
 -- falldown, lua edition \o/
 -- © 2k12 r043v/dph
 
-
 -- init function, launched at start
 function setup()
  -- game option
  game = { map  = { data = {}, sizey = 6000, speed = 450, scroll = 0, bg = {255,0,255}, tile = { size = { x=50, y=50 }, color  = { {255,0,0},{0,255,0},{0,0,255},{255,255,0},{0,255,255} } } },
           hero = { isFall=1, color = {255,0,0}, size = { x=32, y=32 }, pos = { x=0, y=0 } },
-          screen = { size = { x=0, y=0 }, fps = 30 },
+          screen = { size = { x=0, y=0 }, fps = 60 },
         }
 
  -- init hero position
@@ -32,7 +31,9 @@ function setup()
  
  -- generate a random map
  generateMap()
- 
+
+ setFPS(60)
+
  -- get ready for action!
 end
 
@@ -44,7 +45,7 @@ end
 function draw()
  -- clear screen
  background(game.map.bg[1],game.map.bg[2],game.map.bg[3]);
- 
+
  -- detect speed change and change current map/hero speed
  if game.map.oldSpeed ~= game.speed or game.hero.oldSpeed ~= hero.speed then
   game.map.oldSpeed = game.map.speed
@@ -92,7 +93,7 @@ function draw()
  end
  
  -- blit the map
- drawMap();
+ zdrawMap();
  
  -- blit hero²
  fill(game.hero.color[1],game.hero.color[2],game.hero.color[3],1);
@@ -130,6 +131,8 @@ function draw()
    
  -- some debug
 -- fill(0,255,0,1)
+-- text(100,40,string.format("tick %d",getTick()))
+-- text(100,70,string.format("image size %d %d",game.testSizex, game.testSizey))
 -- text(100,100,string.format("scroll %d",game.map.scroll))
 -- text(100,130,string.format("screen %d*%d => %d*%d",WIDTH,HEIGHT,game.screen.size.x,game.screen.size.y))
 -- text(100,160,string.format("speed %d px/s current %d frame %d ratio %f",game.map.speed,game.map.currentSpeed,game.screen.frameFlip,game.map.speedRatio))
@@ -188,7 +191,7 @@ function generateMap()
   end
 end
 
-function drawMap()
+function zdrawMap()
  -- compute y start tile position, pixels -> tiles
  local starty = math.floor(game.map.scroll/game.map.tile.size.y)+1
 

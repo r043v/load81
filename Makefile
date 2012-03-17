@@ -4,9 +4,10 @@ LDLIBS=lua/src/liblua.a -lm `pkg-config --libs $(PKGS)`
 
 all: load81 
 
-load81: load81.o editor.o framebuffer.o lua/src/liblua.a
+load81: load81.o editor.o framebuffer.o gdl.o lua/src/liblua.a
 editor.o: editor.c editor.h framebuffer.h
 framebuffer.o: framebuffer.c framebuffer.h bitfont.h
+gdl.o: gdl.c gdl.h framebuffer.h
 load81.o: load81.c framebuffer.h editor.h load81.h
 
 lua/src/liblua.a:

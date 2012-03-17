@@ -37,8 +37,7 @@
 #include "framebuffer.h"
 #include "editor.h"
 #include "load81.h"
-
-#define NOTUSED(V) ((void) V)
+#include "gdl.h"
 
 struct globalConfig l81;
 
@@ -373,6 +372,7 @@ int processSdlEvents(void) {
             mouseButtonEvent(event.button.button,0);
             break;
         case SDL_QUIT:
+            closeGdl();
             exit(0);
             break;
         }
@@ -385,6 +385,8 @@ int processSdlEvents(void) {
                 break; /* Go to lua before processing more. */
         }
     }
+    
+    flipGdl();
 
     /* Call the setup function, only the first time. */
     if (l81.epoch == 0) {
@@ -419,6 +421,7 @@ void initConfig(void) {
     l81.opt_full_screen = 0;
     l81.filename = NULL;
     srand(mstime());
+    initGdl();
 }
 
 /* Load the editor program into Lua. Returns 0 on success, 1 on error. */
@@ -495,6 +498,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"sprite");
 
     initSpriteEngine(l81.L);
+
+    resetGdl();
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);

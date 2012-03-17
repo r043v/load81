@@ -9,6 +9,10 @@
 #define DEFAULT_HEIGHT 600
 #define DEFAULT_BPP 24
 
+/* ============================= Macro ====================================== */
+
+#define NOTUSED(V) ((void) V)
+
 /* ============================= Data structures ============================ */
 
 struct globalConfig {
