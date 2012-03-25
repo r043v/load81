@@ -18,6 +18,11 @@
 #define MAX_LOADED_ANIM 512
 #define MAX_LOADED_MAP 32
 
+#define COLOR_PINK 0
+#define COLOR_WHITE 1
+#define COLOR_BLACK 2
+#define COLOR_UP_LEFT 3
+
 #include "load81.h"
 
 struct anim

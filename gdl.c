@@ -13,6 +13,15 @@ void resetGdl(void)
     setNumber("SCROLL_UPRIGHT",1|8);
     setNumber("SCROLL_DOWNLEFT",2|4);
     setNumber("SCROLL_DOWNRIGHT",2|8);
+    
+    // anim type define
+    setNumber("ANIM_123123",0);
+    
+    // transparent color define
+    setNumber("COLOR_PINK",COLOR_PINK);
+    setNumber("COLOR_WHITE",COLOR_WHITE);
+    setNumber("COLOR_BLACK",COLOR_BLACK);
+    setNumber("COLOR_UP_LEFT",COLOR_UP_LEFT);
   
     // add get tick routine
     lua_pushcfunction(l81.L,getTickBinding);
@@ -102,19 +111,159 @@ void closeGdl(void)
 // return current tick
 int getTickBinding(lua_State *L){ lua_pushnumber(L,gdl.tick); return 1; }
 
-int loadImageBinding(lua_State *L)
-{	const char *s;
-	size_t len;
-	SDL_Surface * loaded=NULL;
-	int error=0;
-	s = lua_tolstring(L,-1,&len); if(!s) error=1;
+SDL_Surface * loadImgFile(const char * path)
+{	SDL_Surface * loaded = SDL_LoadBMP(path);
+	if(loaded == NULL) return 0;
+	SDL_Surface * image = SDL_DisplayFormat(loaded);
+	if(image != NULL) { SDL_FreeSurface(loaded); loaded = image; }
+	return loaded;
+}
+
+void setSurfaceTransparentRGB(SDL_Surface*i, int r, int g, int b)
+{	Uint32 trclr = SDL_MapRGB(i->format,r,g,b);
+	SDL_SetColorKey(i,SDL_RLEACCEL|SDL_SRCCOLORKEY,trclr);
+}
+
+void setSurfaceTransparent(SDL_Surface*i, Uint32 color)
+{	SDL_SetColorKey(i,SDL_RLEACCEL|SDL_SRCCOLORKEY,color);
+}
+
+Uint32 sdlSurfaceGetPixel(SDL_Surface*s,unsigned int x,unsigned int y)
+{	SDL_LockSurface(s);
 	
-	if(!error)
-	{	loaded = SDL_LoadBMP(s);
-		if(loaded != NULL) gdl.loadedSurfaces[gdl.loadedSurfacesNb] = loaded; else error=1;
+        int bpp = s->format->BytesPerPixel;
+	Uint8 *p = ( (Uint8 *)s->pixels )+y*s->pitch+x*bpp;
+	Uint32 color = 0;
+
+	switch(bpp)
+	{ case 1: color = *p; break;
+	  case 2: color = *(Uint16 *)p; break;
+	  case 3:
+		#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+			color = p[0]|p[1]<<8|p[2]<<16;
+		#else
+			color = p[2]|p[1]<<8|p[0]<<16;
+		#endif
+	  break;
+	  case 4: color = *(Uint32 *)p; break;
+	}
+
+	SDL_UnlockSurface(s);
+	return color;
+}
+
+void setSurfaceTransparentFromUpLeft(SDL_Surface*i)
+{	Uint32 colorkey = sdlSurfaceGetPixel(i,0,0);
+	//Uint8 r,g,b;
+	//SDL_GetRGB(color, i->format, &r, &g, &b);
+	//Uint32 colorkey=SDL_MapRGB(i->format, r, g, b);
+	SDL_SetColorKey(i,SDL_SRCCOLORKEY|SDL_RLEACCEL,colorkey);
+}
+
+void colorGetRGB(SDL_Surface*i,Uint32 color,Uint8*r,Uint8*g,Uint8*b){ SDL_GetRGB(color, i->format, r, g, b); }
+
+Uint32 colorGetColorKey(SDL_Surface*i,Uint32 color)
+{	Uint8 r,g,b; SDL_GetRGB(color, i->format, &r, &g, &b);
+	return SDL_MapRGB(i->format, r, g, b);
+}
+
+/* generic lua argument reader for select picture
+ * 
+ * 
+ * return picture number in global sdl surface array
+ */
+
+int luaArgSelectImage(lua_State *L, int nbArgs, int startArg)
+{	int stillArgs = nbArgs;
+	int surfaceId = -1;
+	SDL_Surface*loaded = NULL;
+	size_t len;
+	const char *s;
+	int color, x, y, r, g, b;
+
+	//printf("nbargs : %i, startArg : %i\n",nbArgs,startArg);
+	
+	switch( lua_type(L,startArg) )
+	{	case LUA_TNUMBER:
+			surfaceId = lua_tonumber(L,startArg);
+			//printf("load picture from int.\n");
+		break;
+		
+		case LUA_TSTRING:
+			s = lua_tolstring(L,startArg,&len);
+			//printf("load picture from path '%s'\n",s);
+			if(s)
+			{	loaded = loadImgFile(s);
+				if(loaded != NULL)
+				{	surfaceId = gdl.loadedSurfacesNb++;
+					gdl.loadedSurfaces[surfaceId] = loaded;
+					//printf("load success %i\n",surfaceId);
+				}// else printf("load error :/\n");
+			}
+		break;
+	}
+
+	stillArgs = nbArgs-startArg;
+
+	switch(stillArgs) // transparent color type
+	{	case 1: // predefined transparent color, or direct one
+			color = lua_tonumber(L,startArg+1);
+			switch(color)
+			{	case COLOR_PINK  : setSurfaceTransparentRGB(gdl.loadedSurfaces[surfaceId],255,0,255); break;
+				case COLOR_WHITE : setSurfaceTransparentRGB(gdl.loadedSurfaces[surfaceId],255,255,255); break;
+				case COLOR_BLACK : setSurfaceTransparentRGB(gdl.loadedSurfaces[surfaceId],0,0,0); break;
+				case COLOR_UP_LEFT :
+					x = sdlSurfaceGetPixel(gdl.loadedSurfaces[surfaceId],0,0);
+					setSurfaceTransparent(gdl.loadedSurfaces[surfaceId],x);
+				break;
+			}
+		break;
+		
+		case 2: // x,y pixel in surface for 
+			x = lua_tonumber(L,startArg+1);
+			y = lua_tonumber(L,startArg+2);
+			color = sdlSurfaceGetPixel(gdl.loadedSurfaces[surfaceId],x,y);
+			setSurfaceTransparent(gdl.loadedSurfaces[surfaceId],color);
+		break;
+	  
+		case 3: // r,g,b => transparent color
+			r = lua_tonumber(L,startArg+1);
+			g = lua_tonumber(L,startArg+2);
+			b = lua_tonumber(L,startArg+3);
+			setSurfaceTransparentRGB(gdl.loadedSurfaces[surfaceId],r,g,b);
+		break;
 	}
 	
-	if(error) lua_pushnumber(L,-1); else lua_pushnumber(L,gdl.loadedSurfacesNb++); return 1;
+	//printf("surface id : %i\n",surfaceId);
+	
+	return surfaceId;
+}
+
+/* generic lua argument reader for select animation
+ * 
+ * 
+ * return anim number in global anims array
+ */
+
+int luaArgSelectAnim(lua_State *L, int nbArgs, int startArg)
+{	// direct anim id
+	if(nbArgs-startArg == 0) return lua_tonumber(L,startArg);
+	// else, complete anim declaration
+	int atype,atime,nb,sx,n = startArg;
+	atype = lua_tonumber(L,n++);
+	atime = lua_tonumber(L,n++);
+	nb    = lua_tonumber(L,n++);
+	sx    = lua_tonumber(L,n++);
+	n = luaArgSelectImage(L,nbArgs,n);
+	
+	if(n < 0 || gdl.loadedSurfacesNb <= n) return -1;
+	gdl.loadedAnims[gdl.loadedAnimsNb] = setAnim(gdl.loadedSurfaces[n],nb,sx,atime,atype);
+	return gdl.loadedAnimsNb++;
+}
+
+
+int loadImageBinding(lua_State *L)
+{	lua_pushnumber(L,luaArgSelectImage(L,lua_gettop(L),1)); return 1;
 }
 
 int drawImageBinding(lua_State *L)
@@ -215,16 +364,7 @@ struct anim * setAnim(SDL_Surface *imgs, unsigned int nb, unsigned int sx, unsig
 void resetAnim(struct anim **a){ (*a)->curentFrm=0 ; (*a)->lastTime = gdl.tick ; }
 
 int newAnimBinding(lua_State *L)
-{	int n,sx,nb,atime,atype, error=0;
-	n     = lua_tonumber(L,-5);
-	sx    = lua_tonumber(L,-4);
-	nb    = lua_tonumber(L,-3);
-	atime = lua_tonumber(L,-2);
-	atype = lua_tonumber(L,-1);
-  
-	if(n < 0 || gdl.loadedSurfacesNb <= n) error=1;
-	else gdl.loadedAnims[gdl.loadedAnimsNb] = setAnim(gdl.loadedSurfaces[n],nb,sx,atime,atype);
-	if(error) lua_pushnumber(L,-1); else lua_pushnumber(L,gdl.loadedAnimsNb++); return 1;
+{	lua_pushnumber(L,luaArgSelectAnim(L,lua_gettop(L),1)); return 1;
 }
 
 int drawAnimBinding(lua_State *L)
@@ -299,18 +439,18 @@ struct map * setMap(unsigned int*array,SDL_Surface*tileset,unsigned int tileNumb
 	m->scrolly = scrolly ;
 	m->sizeInTilex = sizex;
 	m->sizeInTiley = sizey;
-//printf("1\n");
+	
 	// precompute some usefull value
 	m->xTileDec = mapComputeDec(tileSizex); // tile size is multiple of 2, so can use >> or << instead of / or *
 	m->yTileDec = mapComputeDec(tileSizey);
-//printf("2\n");
+
 	m->sizeInPixelx = sizex<<m->xTileDec;
 	m->sizeInPixely = sizey<<m->yTileDec;
 	m->firstTileBlitx = (m->scrollx>>m->xTileDec);
 	m->firstTileBlity = (m->scrolly>>m->yTileDec);
 	m->currentDecx = m->scrollx-(m->firstTileBlitx<<m->xTileDec);
 	m->currentDecy = m->scrolly-(m->firstTileBlity<<m->yTileDec);
-//printf("3\n");
+
 	if(!out)
 	{	struct mapOutZone o;
 		o.x = o.y = 0;
@@ -329,21 +469,23 @@ struct map * setMap(unsigned int*array,SDL_Surface*tileset,unsigned int tileNumb
 
 	m->tiledrawx = m->uncutDrawx+m->morex+(m->pixelessx!=0);
 	m->tiledrawy = m->uncutDrawy+m->morey+(m->pixelessy!=0);
-//printf("4\n");
+
 	m->Animate = (struct anim**)malloc(tileNumber*sizeof(struct anim*));
 	memset(m->Animate,0,tileNumber*sizeof(struct anim*));
-//printf("5\n");
+
 	return m;
 }
 
 int newMapBinding(lua_State *L)
-{	unsigned int tileNumber,tileSizex,tileSizey,sizex,sizey; int tileset;
-	tileset    = lua_tonumber(L,2);
-	tileNumber = lua_tonumber(L,3);
-	tileSizex  = lua_tonumber(L,4);
-	tileSizey  = lua_tonumber(L,5);
-	sizex      = lua_tonumber(L,6);
-	sizey      = lua_tonumber(L,7);
+{	unsigned int tileNumber,tileSizex,tileSizey,sizex,sizey; int tileset, nbargs = lua_gettop(L);
+
+	sizex      = lua_tonumber(L,2);
+	sizey      = lua_tonumber(L,3);
+	tileNumber = lua_tonumber(L,4);
+	tileSizex  = lua_tonumber(L,5);
+	tileSizey  = lua_tonumber(L,6);
+	tileset = luaArgSelectImage(L,nbargs,7);
+
 	unsigned int * array = (unsigned int*)malloc(sizex * sizey * sizeof(unsigned int));
 	memset(array,0,sizex * sizey * sizeof(unsigned int));
 	
@@ -445,11 +587,11 @@ void setMapAnimatedTile(struct map * m, unsigned int tile, struct anim * Anim)
 }
 
 int setMapAnimatedTileBinding(lua_State*L)
-{	int map,tile,anim;
-	map  = lua_tonumber(L,-3);
-	tile = lua_tonumber(L,-2);
-	anim = lua_tonumber(L,-1);
+{	int map,tile,anim, nbArgs = lua_gettop(L);
+	map  = lua_tonumber(L,1);
 	if(map  < 0 || gdl.loadedMapsNb <= map)   return 0;
+	tile = lua_tonumber(L,2);
+	anim = luaArgSelectAnim(L,nbArgs,3);
 	if(anim < 0 || gdl.loadedAnimsNb <= anim) return 0;
 	setMapAnimatedTile(gdl.loadedMaps[map],tile,gdl.loadedAnims[anim]);
 	return 0;
@@ -486,16 +628,13 @@ void mapDraw(struct map * m)
 }
 
 int mapDrawBinding(lua_State*L)
-{	//printf("enter draw map !\n");
-	int mapid = lua_tonumber(L,-1);
+{	int mapid = lua_tonumber(L,-1);
 	if(mapid < 0 || gdl.loadedMapsNb <= mapid)
 	{	printf("bad map : %d\n",mapid);
 		return 0;
 	
 	}
-	//printf("draw map.\n");
 	mapDraw(gdl.loadedMaps[mapid]);
-
 	return 0;
 }
 

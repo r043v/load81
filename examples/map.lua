@@ -1,7 +1,6 @@
 function setup()
  game = { }
  setFPS(60)
- game.tileset = loadImage("examples/map/tileset.bmp");
 
  game.mymap = newMap(
 	{
@@ -45,16 +44,17 @@ function setup()
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-      },game.tileset,21,16,16,40,40)
+      },40,40,21,16,16,"examples/map/tileset.bmp",COLOR_BLACK)
  
 	setMapOutZone(game.mymap,100,100,320,240);
 
 	game.scrollway_v = SCROLL_DOWN;
 	game.scrollway_h = SCROLL_RIGHT;
 	game.scrollway = mapScrollGetWay(game.scrollway_v,game.scrollway_h);
-	game.animtest = newAnim(game.tileset,16,21,300,0);
-	setMapAnimatedTile(game.mymap,6,game.animtest)
 	
+	game.animtest = newAnim(ANIM_123123,120,6,32,"examples/map/sword.bmp",COLOR_PINK);
+
+	setMapAnimatedTile(game.mymap,1,ANIM_123123,200,21,16,"examples/map/tiles.bmp",COLOR_PINK);
   -- get ready for action!
 end
 
@@ -63,6 +63,9 @@ function draw()
  -- clear screen
  background(255,255,255);
  drawMap(game.mymap)
+ 
+ playAnim(20,20,game.animtest);
+ 
  up,down,left,right = mapScroll(game.mymap,game.scrollway,1);
  
  if game.scrollway_v == SCROLL_DOWN then
