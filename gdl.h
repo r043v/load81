@@ -116,6 +116,7 @@ int setMapAnimatedTileBinding(lua_State*L);
 void mapDraw(struct map * m);
 int mapDrawBinding(lua_State*L);
 int setMapOutZoneBinding(lua_State*L);
+void luaPush(const char*, void*);
 
 extern void setNumber(char *name, lua_Number n);
 extern long long mstime(void);

@@ -2,6 +2,11 @@
 
 struct gdl_data gdl;
 
+void luaPush(const char* luaName, void*function)
+{   lua_pushcfunction(l81.L,function);
+    lua_setglobal(l81.L,luaName);
+}
+
 void resetGdl(void)
 {
     // scroll way define.
@@ -24,50 +29,32 @@ void resetGdl(void)
     setNumber("COLOR_UP_LEFT",COLOR_UP_LEFT);
   
     // add get tick routine
-    lua_pushcfunction(l81.L,getTickBinding);
-    lua_setglobal(l81.L,"getTick");
+    luaPush("getTick",getTickBinding);
     
     // add image blit/load
-    lua_pushcfunction(l81.L,loadImageBinding);
-    lua_setglobal(l81.L,"loadImage");
-    lua_pushcfunction(l81.L,drawImageBinding);
-    lua_setglobal(l81.L,"drawImage");
-    lua_pushcfunction(l81.L,drawImagePartBinding);
-    lua_setglobal(l81.L,"drawImagePart");
-    lua_pushcfunction(l81.L,drawImageTileBinding);
-    lua_setglobal(l81.L,"drawImageTile");
-    lua_pushcfunction(l81.L,getImageSizeBinding);
-    lua_setglobal(l81.L,"getImageSize");    
+    luaPush("loadImage",loadImageBinding);
+    luaPush("drawImage",drawImageBinding);
+    luaPush("drawImagePart",drawImagePartBinding);
+    luaPush("drawImageTile",drawImageTileBinding);
+    luaPush("getImageSize",getImageSizeBinding);
     
     // add anims routine
-    lua_pushcfunction(l81.L,newAnimBinding);
-    lua_setglobal(l81.L,"newAnim");
-    lua_pushcfunction(l81.L,playAnimBinding);
-    lua_setglobal(l81.L,"playAnim");    
-    lua_pushcfunction(l81.L,drawAnimBinding);
-    lua_setglobal(l81.L,"drawAnim"); 
+    luaPush("newAnim",newAnimBinding);
+    luaPush("playAnim",playAnimBinding);
+    luaPush("drawAnim",drawAnimBinding);
     
     // screen clip zone
-    lua_pushcfunction(l81.L,setScreenClipBinding);
-    lua_setglobal(l81.L,"setScreenClip"); 
-    lua_pushcfunction(l81.L,fullScreenClipBinding);
-    lua_setglobal(l81.L,"fullScreenClip"); 
+    luaPush("setScreenClip",setScreenClipBinding);
+    luaPush("fullScreenClip",fullScreenClipBinding);
 
     // maps
-    lua_pushcfunction(l81.L,newMapBinding);
-    lua_setglobal(l81.L,"newMap");
-    lua_pushcfunction(l81.L,mapDrawBinding);
-    lua_setglobal(l81.L,"drawMap");
-    lua_pushcfunction(l81.L,setMapOutZoneBinding);
-    lua_setglobal(l81.L,"setMapOutZone");
-    lua_pushcfunction(l81.L,mapScrollBinding);
-    lua_setglobal(l81.L,"mapScroll");
-    lua_pushcfunction(l81.L,setMapScrollBinding);
-    lua_setglobal(l81.L,"setMapScroll");    
-    lua_pushcfunction(l81.L,mapScrollGetWayBinding);
-    lua_setglobal(l81.L,"mapScrollGetWay");
-    lua_pushcfunction(l81.L,setMapAnimatedTileBinding);
-    lua_setglobal(l81.L,"setMapAnimatedTile");
+    luaPush("newMap",newMapBinding);
+    luaPush("drawMap",mapDrawBinding);
+    luaPush("setMapOutZone",setMapOutZoneBinding);
+    luaPush("mapScroll",mapScrollBinding);
+    luaPush("setMapScroll",setMapScrollBinding);
+    luaPush("mapScrollGetWay",mapScrollGetWayBinding);
+    luaPush("setMapAnimatedTile",setMapAnimatedTileBinding);
 }
 
 void flipGdl(void)
