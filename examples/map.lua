@@ -68,6 +68,14 @@ function draw()
  
  up,down,left,right = mapScroll(game.mymap,game.scrollway,1);
  
+ tile = getTile(game.mymap,FROM_SCREEN,mouse.x,mouse.y)
+ text(10,10,string.format("x:%s y:%s tile:%d",mouse.x,mouse.y,tile))
+ 
+ if mouse.pressed['1'] then
+   setTile(game.mymap,FROM_SCREEN,mouse.x,mouse.y,6) -- purple :- )
+ end
+ 
+ 
  if game.scrollway_v == SCROLL_DOWN then
    if down == 1 then game.scrollway_v = SCROLL_UP end
  else

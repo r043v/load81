@@ -27,7 +27,12 @@ void resetGdl(void)
     setNumber("COLOR_WHITE",COLOR_WHITE);
     setNumber("COLOR_BLACK",COLOR_BLACK);
     setNumber("COLOR_UP_LEFT",COLOR_UP_LEFT);
-  
+    
+    // get map tile define
+    setNumber("FROM_MAP",GET_TILE_FROM_MAP);
+    setNumber("FROM_ZONE",GET_TILE_FROM_ZONE);
+    setNumber("FROM_SCREEN",GET_TILE_FROM_SCREEN);
+
     // add get tick routine
     luaPush("getTick",getTickBinding);
     
@@ -55,6 +60,8 @@ void resetGdl(void)
     luaPush("setMapScroll",setMapScrollBinding);
     luaPush("mapScrollGetWay",mapScrollGetWayBinding);
     luaPush("setMapAnimatedTile",setMapAnimatedTileBinding);
+    luaPush("getTile",getTileBinding);
+    luaPush("setTile",setTileBinding);
 }
 
 void flipGdl(void)
@@ -115,7 +122,7 @@ void setSurfaceTransparent(SDL_Surface*i, Uint32 color)
 {	SDL_SetColorKey(i,SDL_RLEACCEL|SDL_SRCCOLORKEY,color);
 }
 
-Uint32 sdlSurfaceGetPixel(SDL_Surface*s,unsigned int x,unsigned int y)
+Uint32 sdlSurfaceGetPixel(SDL_Surface*s,u32 x,u32 y)
 {	SDL_LockSurface(s);
 	
         int bpp = s->format->BytesPerPixel;
@@ -341,7 +348,7 @@ void drawFrm(struct anim **b, int x, int y, int frm)
     drawImageTile(x,y,frm,a->frameWidth,a->imgs);
 }
 
-struct anim * setAnim(SDL_Surface *imgs, unsigned int nb, unsigned int sx, unsigned int frmTime, unsigned int animType)
+struct anim * setAnim(SDL_Surface *imgs, u32 nb, u32 sx, u32 frmTime, u32 animType)
 {	struct anim *a = (struct anim *)malloc(sizeof(struct anim)) ;
 	a->imgs = imgs ; a->frmNumber = nb; a->curentFrm = 0; a->lastTime = gdl.tick;
 	a->frmTime = frmTime ; a->animType = animType; a->frameWidth = sx;
@@ -390,8 +397,8 @@ int fullScreenClipBinding(lua_State *L){ NOTUSED(L); fullScreenClip(); return 0;
 
 // map.
 
-unsigned int mapComputeDec(unsigned int value)
-{	unsigned int v=1, dec=0; while(v<value) { v<<=1; dec++; } return dec;
+u32 mapComputeDec(u32 value)
+{	u32 v=1, dec=0; while(v<value) { v<<=1; dec++; } return dec;
 }
 
 void setMapOutZone(struct map*m,struct mapOutZone*out)
@@ -407,15 +414,15 @@ void setMapOutZone(struct map*m,struct mapOutZone*out)
 	m->maxScrolly = (m->tileSizey*m->sizeInTiley) - out->height ;
 }
 
-struct map * setMap(unsigned int*array,SDL_Surface*tileset,unsigned int tileNumber,unsigned int tileSizex,unsigned int tileSizey,unsigned int sizex,unsigned int sizey,unsigned int scrollx,unsigned int scrolly, struct mapOutZone * out, unsigned int copyArray)
+struct map * setMap(u32*array,SDL_Surface*tileset,u32 tileNumber,u32 tileSizex,u32 tileSizey,u32 sizex,u32 sizey,u32 scrollx,u32 scrolly, struct mapOutZone * out, u32 copyArray)
 {	struct map * m = (struct map*)malloc(sizeof(struct map));
-	unsigned int size = sizex*sizey ;
+	u32 size = sizex*sizey ;
 	if(!array || !size) return 0 ;
 
 	// copy the array (so we'll can modify it)
 	if(copyArray)
-	{	m->array = (unsigned int*)malloc(size*sizeof(unsigned int));
-		memcpy(m->array,array,size*sizeof(unsigned int));
+	{	m->array = (u32*)malloc(size*sizeof(u32));
+		memcpy(m->array,array,size*sizeof(u32));
 	} else m->array = array;
 
 	m->tileset = tileset ;
@@ -464,7 +471,7 @@ struct map * setMap(unsigned int*array,SDL_Surface*tileset,unsigned int tileNumb
 }
 
 int newMapBinding(lua_State *L)
-{	unsigned int tileNumber,tileSizex,tileSizey,sizex,sizey; int tileset, nbargs = lua_gettop(L);
+{	u32 tileNumber,tileSizex,tileSizey,sizex,sizey; int tileset, nbargs = lua_gettop(L);
 
 	sizex      = lua_tonumber(L,2);
 	sizey      = lua_tonumber(L,3);
@@ -473,10 +480,10 @@ int newMapBinding(lua_State *L)
 	tileSizey  = lua_tonumber(L,6);
 	tileset = luaArgSelectImage(L,nbargs,7);
 
-	unsigned int * array = (unsigned int*)malloc(sizex * sizey * sizeof(unsigned int));
-	memset(array,0,sizex * sizey * sizeof(unsigned int));
+	u32 * array = (u32*)malloc(sizex * sizey * sizeof(u32));
+	memset(array,0,sizex * sizey * sizeof(u32));
 	
-	unsigned int * ptr = array;
+	u32 * ptr = array;
 	lua_pushnil(L); while(lua_next(L, 1) != 0) { *ptr++ = lua_tonumber(L,-1); lua_pop(L, 1); }
 
 	if(tileset < 0 || gdl.loadedSurfacesNb <= tileset) lua_pushnumber(L,-1);
@@ -486,8 +493,8 @@ int newMapBinding(lua_State *L)
 	}	return 1;
 }
 
-unsigned int mapScroll(struct map * m, unsigned int way, unsigned int pawa)
-{	unsigned int cpt, rtn=0;
+u32 mapScroll(struct map * m, u32 way, u32 pawa)
+{	u32 cpt, rtn=0;
 	if(way&1)	// up
 		for(cpt=0;cpt<pawa;cpt++)
 		{	if(m->scrolly) m->scrolly--; else rtn |= 1;
@@ -533,7 +540,7 @@ int mapScrollBinding(lua_State*L)
 	way   = lua_tonumber(L,-2);
 	pawa  = lua_tonumber(L,-1);
 	if(mapid < 0 || gdl.loadedMapsNb <= mapid) return 0;
-	unsigned int result = mapScroll(gdl.loadedMaps[mapid],way,pawa);
+	u32 result = mapScroll(gdl.loadedMaps[mapid],way,pawa);
 	lua_pushnumber(L,((result&1) != 0)); // up
 	lua_pushnumber(L,((result&2) != 0)); // down
 	lua_pushnumber(L,((result&4) != 0)); // left
@@ -541,7 +548,7 @@ int mapScrollBinding(lua_State*L)
 	return 4;
 }
 
-unsigned int setMapScroll(struct map * m, unsigned int x, unsigned int y)
+u32 setMapScroll(struct map * m, u32 x, u32 y)
 {	m->scrollx = x; m->scrolly = y; return mapScroll(m,0,0);
 }
 
@@ -551,7 +558,7 @@ int setMapScrollBinding(lua_State*L)
 	x     = lua_tonumber(L,-2);
 	y     = lua_tonumber(L,-1);
 	if(mapid < 0 || gdl.loadedMapsNb <= mapid) return 0;
-	unsigned int result = setMapScroll(gdl.loadedMaps[mapid],x,y);
+	u32 result = setMapScroll(gdl.loadedMaps[mapid],x,y);
 	lua_pushnumber(L,((result&1) != 0)); // up
 	lua_pushnumber(L,((result&2) != 0)); // down
 	lua_pushnumber(L,((result&4) != 0)); // left
@@ -568,7 +575,7 @@ int mapScrollGetWayBinding(lua_State*L)
 	return 1;
 }
 
-void setMapAnimatedTile(struct map * m, unsigned int tile, struct anim * Anim)
+void setMapAnimatedTile(struct map * m, u32 tile, struct anim * Anim)
 {	if(!tile || !Anim || tile >= m->tileNumber) return ;
 	m->Animate[tile] = Anim;
 }
@@ -584,16 +591,84 @@ int setMapAnimatedTileBinding(lua_State*L)
 	return 0;
 }
 
+u32 getMapTile(struct map * m, u32 x, u32 y)
+{	x >>= m->xTileDec ;
+	y >>= m->yTileDec ;
+	return m->array[y*m->sizeInTilex+x];
+}
+
+void setMapTile(struct map * m, u32 tile, u32 x, u32 y)
+{	if(tile >= m->tileNumber) return ;
+	x >>= m->xTileDec ;
+	y >>= m->yTileDec ;
+	m->array[y*m->sizeInTilex+x] = tile ;
+}
+
+u32 getOutZoneTile(struct map * m, u32 x, u32 y)
+{	return getMapTile(m,x+m->scrollx,y+m->scrolly);
+}
+
+void setOutZoneTile(struct map * m, u32 tile, u32 x, u32 y)
+{	if(tile >= m->tileNumber) return ;
+	setMapTile(m,tile,x+m->scrollx,y+m->scrolly);
+}
+
+u32 getScreenTile(struct map * m, u32 x, u32 y)
+{	y = l81.height - y;
+	if( (x < m->out.x) || (y < m->out.y) ) return 0xffff;
+	if(   (x >= m->out.x + m->out.width)
+	   || (y >= m->out.y + m->out.height)) return 0xffff;
+	
+	int xx = x+m->scrollx;
+	int yy = y+m->scrolly;
+	xx -= m->currentDecx; xx -= m->out.x;
+	yy -= m->currentDecy; yy -= m->out.y;
+	//printf("xx %d yy %d tile %d\n",xx,yy,getMapTile(m,xx,yy));
+	return getMapTile(m,xx,yy);
+}
+
+void setScreenTile(struct map * m, u32 tile, u32 x, u32 y)
+{	if(tile >= m->tileNumber) return ;
+	y = l81.height - y;
+	setMapTile(m,tile,x+m->scrollx-m->currentDecx-m->out.x,y+m->scrolly-m->currentDecy-m->out.y);
+}
+
+int getTileBinding(lua_State*L)
+{	int mapid,x,y,type;
+	//void (*getTile[3]) = { getMapTile,getOutZoneTile,getScreenTile };
+	u32 (*getTile[3])(struct map * m, u32 x, u32 y) = { getMapTile,getOutZoneTile,getScreenTile };
+	mapid = lua_tonumber(L,1);
+	type  = lua_tonumber(L,2);
+	x     = lua_tonumber(L,3);
+	y     = lua_tonumber(L,4);
+	u32 tile = (*getTile[type])(gdl.loadedMaps[mapid],x,y);
+	lua_pushnumber(L,tile);
+	return 1;
+}
+
+int setTileBinding(lua_State*L)
+{	int mapid,x,y,type,tile;
+	//void (*getTile[3]) = { getMapTile,getOutZoneTile,getScreenTile };
+	void (*setTile[3])(struct map * m, u32 tile, u32 x, u32 y) = { setMapTile,setOutZoneTile,setScreenTile };
+	mapid = lua_tonumber(L,1);
+	type  = lua_tonumber(L,2);
+	x     = lua_tonumber(L,3);
+	y     = lua_tonumber(L,4);
+	tile  = lua_tonumber(L,5);
+	(*setTile[type])(gdl.loadedMaps[mapid],tile,x,y);
+	return 0;
+}
+
 // bad draw function, sdl is too limited.
 
 void mapDraw(struct map * m)
 {	//SDL_Rect savedClipLimit; memcpy(&savedClipLimit,&l81.currentClipLimit,sizeof(SDL_Rect));
 	setScreenClip(m->out.x,m->out.y,m->out.width,m->out.height);
-	unsigned int cptx,cpty,blitPosx,blitPosy,tile;
+	u32 cptx,cpty,blitPosx,blitPosy,tile;
 
 	blitPosx = (m->out.x) - m->currentDecx;
 	blitPosy = (m->out.y) - m->currentDecy;
-	unsigned int startblitxpos = blitPosx;
+	u32 startblitxpos = blitPosx;
 	
 	for(cpty=0;cpty<m->tiledrawy;cpty++)
 	{	for(cptx=0;cptx<m->tiledrawx;cptx++)
@@ -616,11 +691,7 @@ void mapDraw(struct map * m)
 
 int mapDrawBinding(lua_State*L)
 {	int mapid = lua_tonumber(L,-1);
-	if(mapid < 0 || gdl.loadedMapsNb <= mapid)
-	{	printf("bad map : %d\n",mapid);
-		return 0;
-	
-	}
+	if(mapid < 0 || gdl.loadedMapsNb <= mapid) return 0;
 	mapDraw(gdl.loadedMaps[mapid]);
 	return 0;
 }

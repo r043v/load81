@@ -23,42 +23,48 @@
 #define COLOR_BLACK 2
 #define COLOR_UP_LEFT 3
 
+#define GET_TILE_FROM_MAP 0
+#define GET_TILE_FROM_ZONE 1
+#define GET_TILE_FROM_SCREEN 2
+
 #include "load81.h"
+
+#define u32 unsigned int
 
 struct anim
 {	long long lastTime  ;
-	unsigned int frmTime   ;
-	unsigned int curentFrm ;
-	unsigned int frmNumber ;
-	unsigned int animType  ;
-	unsigned int frameWidth;
+	u32 frmTime   ;
+	u32 curentFrm ;
+	u32 frmNumber ;
+	u32 animType  ;
+	u32 frameWidth;
 	SDL_Surface * imgs;
 };
 
 struct mapOutZone
-{	unsigned int height,width,x,y;
+{	u32 height,width,x,y;
 };
 
 struct map
 {	struct mapOutZone out;
-	unsigned int scrollx, scrolly;
-	unsigned int tileSizex, tileSizey;
-	unsigned int xTileDec, yTileDec;
-	unsigned int sizeInTilex, sizeInTiley;
-	unsigned int sizeInPixelx, sizeInPixely;
-	unsigned int firstTileBlitx, firstTileBlity;
-	unsigned int uncutDrawx, uncutDrawy;
-	unsigned int pixelMorex, pixelMorey;
-	unsigned int currentDecx, currentDecy;
-	unsigned int maxScrollx, maxScrolly;
-	unsigned int pixelessx, pixelessy;
-	unsigned int morex, morey;
-	unsigned int tiledrawx ,tiledrawy;
+	u32 scrollx, scrolly;
+	u32 tileSizex, tileSizey;
+	u32 xTileDec, yTileDec;
+	u32 sizeInTilex, sizeInTiley;
+	u32 sizeInPixelx, sizeInPixely;
+	u32 firstTileBlitx, firstTileBlity;
+	u32 uncutDrawx, uncutDrawy;
+	u32 pixelMorex, pixelMorey;
+	u32 currentDecx, currentDecy;
+	u32 maxScrollx, maxScrolly;
+	u32 pixelessx, pixelessy;
+	u32 morex, morey;
+	u32 tiledrawx ,tiledrawy;
 	
 	SDL_Surface *tileset;
 	struct anim ** Animate;
-	unsigned int tileNumber;
-	unsigned int *array;
+	u32 tileNumber;
+	u32 *array;
 };
 
 struct gdl_data
@@ -94,7 +100,7 @@ int Animate(struct anim **b);
 void playAnim(struct anim **b, int x, int y);
 void drawAnim(struct anim **b, int x, int y);
 void drawFrm(struct anim **b, int x, int y, int frm);
-struct anim * setAnim(SDL_Surface *imgs, unsigned int nb, unsigned int sx, unsigned int frmTime, unsigned int animType);
+struct anim * setAnim(SDL_Surface *imgs, u32 nb, u32 sx, u32 frmTime, u32 animType);
 void resetAnim(struct anim **a);
 int newAnimBinding(lua_State *L);
 int drawAnimBinding(lua_State *L);
@@ -104,18 +110,20 @@ int setScreenClipBinding(lua_State *L);
 void fullScreenClip(void);
 int fullScreenClipBinding(lua_State *L);
 void setMapOutZone(struct map*m,struct mapOutZone*out);
-struct map * setMap(unsigned int*array,SDL_Surface*tileset,unsigned int tileNumber,unsigned int tileSizex,unsigned int tileSizey,unsigned int sizex,unsigned int sizey,unsigned int scrollx,unsigned int scrolly, struct mapOutZone * out, unsigned int copyArray);
+struct map * setMap(u32*array,SDL_Surface*tileset,u32 tileNumber,u32 tileSizex,u32 tileSizey,u32 sizex,u32 sizey,u32 scrollx,u32 scrolly, struct mapOutZone * out, u32 copyArray);
 int newMapBinding(lua_State *L);
-unsigned int mapScroll(struct map * m, unsigned int way, unsigned int pawa);
+u32 mapScroll(struct map * m, u32 way, u32 pawa);
 int mapScrollBinding(lua_State*L);
-unsigned int setMapScroll(struct map * m, unsigned int x, unsigned int y);
+u32 setMapScroll(struct map * m, u32 x, u32 y);
 int setMapScrollBinding(lua_State*L);
 int mapScrollGetWayBinding(lua_State*L);
-void setMapAnimatedTile(struct map * m, unsigned int tile, struct anim * Anim);
+void setMapAnimatedTile(struct map * m, u32 tile, struct anim * Anim);
 int setMapAnimatedTileBinding(lua_State*L);
 void mapDraw(struct map * m);
 int mapDrawBinding(lua_State*L);
 int setMapOutZoneBinding(lua_State*L);
+int getTileBinding(lua_State*L);
+int setTileBinding(lua_State*L);
 void luaPush(const char*, void*);
 
 extern void setNumber(char *name, lua_Number n);
