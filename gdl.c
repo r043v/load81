@@ -1,4 +1,11 @@
-#include "gdl.h"
+/**************************
+ * sprites/anims/maps for load81
+ * based on the multiplatform Gdl² graphic library,
+ * Gdl .. Game Development Library .. 2k2 - 2k12 by r043v/dph
+ * noferov@gmail.com
+*/
+
+ #include "gdl.h"
 
 struct gdl_data gdl;
 
@@ -174,25 +181,20 @@ int luaArgSelectImage(lua_State *L, int nbArgs, int startArg)
 	size_t len;
 	const char *s;
 	int color, x, y, r, g, b;
-
-	//printf("nbargs : %i, startArg : %i\n",nbArgs,startArg);
 	
 	switch( lua_type(L,startArg) )
 	{	case LUA_TNUMBER:
 			surfaceId = lua_tonumber(L,startArg);
-			//printf("load picture from int.\n");
 		break;
 		
 		case LUA_TSTRING:
 			s = lua_tolstring(L,startArg,&len);
-			//printf("load picture from path '%s'\n",s);
 			if(s)
 			{	loaded = loadImgFile(s);
 				if(loaded != NULL)
 				{	surfaceId = gdl.loadedSurfacesNb++;
 					gdl.loadedSurfaces[surfaceId] = loaded;
-					//printf("load success %i\n",surfaceId);
-				}// else printf("load error :/\n");
+				}
 			}
 		break;
 	}
@@ -213,7 +215,7 @@ int luaArgSelectImage(lua_State *L, int nbArgs, int startArg)
 			}
 		break;
 		
-		case 2: // x,y pixel in surface for 
+		case 2: // x,y pixel in picture
 			x = lua_tonumber(L,startArg+1);
 			y = lua_tonumber(L,startArg+2);
 			color = sdlSurfaceGetPixel(gdl.loadedSurfaces[surfaceId],x,y);
@@ -227,8 +229,6 @@ int luaArgSelectImage(lua_State *L, int nbArgs, int startArg)
 			setSurfaceTransparentRGB(gdl.loadedSurfaces[surfaceId],r,g,b);
 		break;
 	}
-	
-	//printf("surface id : %i\n",surfaceId);
 	
 	return surfaceId;
 }
@@ -568,7 +568,6 @@ int setMapScrollBinding(lua_State*L)
 
 int mapScrollGetWayBinding(lua_State*L)
 {	int v,h;
-	//printf("set way %d %d => %d\n",v,h,v|h);
 	v = lua_tonumber(L,-2);
 	h = lua_tonumber(L,-1);
 	lua_pushnumber(L,v|h); // han Oo
@@ -594,6 +593,7 @@ int setMapAnimatedTileBinding(lua_State*L)
 u32 getMapTile(struct map * m, u32 x, u32 y)
 {	x >>= m->xTileDec ;
 	y >>= m->yTileDec ;
+	if(x > m->sizeInTilex || y > m->sizeInTiley) return 0xffff;
 	return m->array[y*m->sizeInTilex+x];
 }
 
@@ -601,6 +601,7 @@ void setMapTile(struct map * m, u32 tile, u32 x, u32 y)
 {	if(tile >= m->tileNumber) return ;
 	x >>= m->xTileDec ;
 	y >>= m->yTileDec ;
+	if(x > m->sizeInTilex || y > m->sizeInTiley) return ;
 	m->array[y*m->sizeInTilex+x] = tile ;
 }
 
@@ -623,19 +624,21 @@ u32 getScreenTile(struct map * m, u32 x, u32 y)
 	int yy = y+m->scrolly;
 	xx -= m->currentDecx; xx -= m->out.x;
 	yy -= m->currentDecy; yy -= m->out.y;
-	//printf("xx %d yy %d tile %d\n",xx,yy,getMapTile(m,xx,yy));
 	return getMapTile(m,xx,yy);
 }
 
 void setScreenTile(struct map * m, u32 tile, u32 x, u32 y)
 {	if(tile >= m->tileNumber) return ;
 	y = l81.height - y;
+	if( (x < m->out.x) || (y < m->out.y) ) return ;
+	if(   (x >= m->out.x + m->out.width)
+	   || (y >= m->out.y + m->out.height)) return ;
+
 	setMapTile(m,tile,x+m->scrollx-m->currentDecx-m->out.x,y+m->scrolly-m->currentDecy-m->out.y);
 }
 
 int getTileBinding(lua_State*L)
 {	int mapid,x,y,type;
-	//void (*getTile[3]) = { getMapTile,getOutZoneTile,getScreenTile };
 	u32 (*getTile[3])(struct map * m, u32 x, u32 y) = { getMapTile,getOutZoneTile,getScreenTile };
 	mapid = lua_tonumber(L,1);
 	type  = lua_tonumber(L,2);
@@ -648,7 +651,6 @@ int getTileBinding(lua_State*L)
 
 int setTileBinding(lua_State*L)
 {	int mapid,x,y,type,tile;
-	//void (*getTile[3]) = { getMapTile,getOutZoneTile,getScreenTile };
 	void (*setTile[3])(struct map * m, u32 tile, u32 x, u32 y) = { setMapTile,setOutZoneTile,setScreenTile };
 	mapid = lua_tonumber(L,1);
 	type  = lua_tonumber(L,2);
